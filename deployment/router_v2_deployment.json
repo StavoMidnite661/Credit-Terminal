@@ -1,0 +1,15 @@
+{
+  "network": "base",
+  "chainId": 8453,
+  "timestamp": "2025-12-05T13:07:05.387Z",
+  "contracts": {
+    "TWAPHelper": "0xa3620e31fb37b7de32fadf5c476d93c080fe3ad4",
+    "SOVRHybridRouter_v2": "0xf682bd9789c0a66f2cb82ecc13fc6b43d7b58830"
+  },
+  "references": {
+    "UniswapRouter": "0x2626664c2603336E57B271c5C0b26F421741e481",
+    "SOVR": "0x65e75d0fc656a2e81ef17e9a2a8da58d82390422",
+    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "PegPool": "0x18d4a13a0116b360efddb72aa626721cfa2a8228"
+  }
+}

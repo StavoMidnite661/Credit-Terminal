@@ -3,8 +3,24 @@ require('dotenv').config();
 module.exports = {
   solidity: {
     compilers: [
-      { version: "0.8.20" },
-      { version: "0.7.6" }
+      { 
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      },
+      { 
+        version: "0.7.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      }
     ]
   },
   networks: {
@@ -12,6 +28,11 @@ module.exports = {
     fork: {
       url: process.env.ALCHEMY || '',
       chainId: 1
+    },
+    base: {
+      url: process.env.BASE_RPC || 'https://mainnet.base.org',
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      chainId: 8453
     }
   },
   mocha: { timeout: 200000 }

@@ -1,124 +1,239 @@
-# 🏛️ The SOVR Empire: Value Attestation Network
+# SOVR Hybrid Engine V2
 
-> **"The network doesn’t replace the banking system. It replaces *permission*."**
-
-**SOVR is a closed-loop, cryptographically verified, merchant-connected credit engine.**
-
-It is **NOT** a cryptocurrency, exchange, or payment processor.
-It is a **Value Attestation Network (VAL)** that uses blockchain as a verification layer to generate merchant-approved stored value (gift cards, vouchers, digital balances) through existing API systems.
+**A cryptographically verified credit engine for value creation and attestation.**
 
 ---
 
-## 🌍 The Core Concept
+## Overview
 
-The system operates on a simple, powerful premise: **Proof of Value → Real-World Spend.**
+SOVR is a **value creation and attestation network** that transforms attested credit into real-world value via merchant integrations. This is **not a crypto project** - it's a closed-loop credit system with cryptographic verification.
 
-1.  **User Deposits Credit**: Users acquire SOVR credits (digital participation units).
-2.  **Blockchain Attests**: The ledger records a cryptographic "Value Attestation" — proof that the user holds value.
-3.  **Network Validates**: The Attestation Layer verifies the proof.
-4.  **Merchant Issues**: The system triggers an existing Merchant API (e.g., Visa, Square, Gift Card) to issue spendable credit.
+### Core Components
 
-**Result**: Users spend digital value in the real world **without converting to fiat** and **without touching the banking system**.
+1. **Smart Contracts** (`/contracts/`)
+   - SOVRHybridRouter_v2 - Production router with TWAP oracle
+   - CreditEventRegistry - On-chain event logging
+   - TWAPHelper - Price oracle
+   - SOVRPrivatePool - Liquidity management
+   - ReserveManager - Collateral management
+   - sFIAT - Stablecoin
 
----
+2. **Value Attestation Layer** (`/val/`)
+   - Attestation engine with cryptographic signing
+   - Universal spend engine
+   - Merchant adapters (Square, Tango, Coinbase, Stripe)
+   - Credit event system (16 event types)
 
-## 🏗️ System Architecture
-
-The Empire is built on four distinct layers:
-
-### 1. ⛓️ Core Layer (The Ledger)
-*   **Role**: Immutable record of truth.
-*   **Components**:
-    *   `SOVRPrivatePool`: Manages credit balances and peg mechanics.
-    *   `SOVRHybridRouter`: Orchestrates flow between users and the network.
-    *   `ReserveManager`: Internal accounting for value backing.
-*   **Tech**: Solidity Smart Contracts (Polygon/Base).
-
-### 2. 🧠 Value Attestation Layer (VAL) (The Brain)
-*   **Role**: Bridges on-chain proofs with off-chain value.
-*   **Components**:
-    *   **Attestors**: Generate cryptographic proofs of credit events.
-    *   **Validators**: Verify proofs against on-chain state.
-    *   **Event Engine**: Listens for `CREDIT_DEPOSITED`, `SPEND_AUTHORIZED` events.
-*   **Tech**: TypeScript / Node.js (Server-Side).
-
-### 3. 🔌 Merchant Adapter Layer (The Hands)
-*   **Role**: Translates attestations into merchant-specific API calls.
-*   **Interfaces**: `IMerchantValueAdapter`
-*   **Adapters**:
-    *   `SquareAdapter`: Issues Square Gift Cards.
-    *   `VisaAdapter`: Provisions Visa Virtual Cards.
-    *   `StripeAdapter`: Manages stored value balances.
-*   **Tech**: TypeScript Modules.
-
-### 4. 💳 Spend Engine (The Interface)
-*   **Role**: User-facing execution of value transfer.
-*   **Function**: `spendCredit(recipient, merchant, amount)`
-*   **UI**: The "Credit Terminal" — a simple interface to select a merchant and instantly generate a spend code.
+3. **Frontend** (`/frontend/`)
+   - Credit Terminal UI
+   - Swap interface
+   - Pool management
+   - Wallet integration
 
 ---
 
-## 🛡️ Compliance & Security
-
-SOVR operates as a **Closed-Loop System**, similar to:
-*   Starbucks Rewards
-*   Amazon Gift Balance
-*   Airline Miles
-
-**Key Distinctions:**
-*   ❌ No Fiat Transmission
-*   ❌ No "Cashing Out" to Bank Accounts
-*   ❌ No Speculative Trading
-*   ✅ Value is only "spent" via authorized merchant goods/services.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-*   Node.js & NPM
-*   Hardhat
-*   MetaMask (or any Web3 Wallet)
+## Quick Start
 
 ### Installation
-1.  **Clone & Install**:
-    ```bash
-    git clone <repo>
-    cd sovr_hybrid_engineV2
-    npm install
-    ```
-2.  **Configure Environment**:
-    Copy `.env.example` to `.env` and add your keys (Alchemy, Private Key).
 
-### Local Development
-1.  **Start Local Blockchain**:
-    ```bash
-    npx hardhat node
-    ```
-2.  **Deploy Contracts**:
-    ```bash
-    npx hardhat run scripts/deploy_all.js --network localhost
-    ```
-3.  **Fund Wallet (Faucet)**:
-    ```bash
-    npx hardhat run scripts/faucet.js --network localhost -- <YOUR_WALLET_ADDRESS>
-    ```
-4.  **Start Frontend**:
-    ```bash
-    cd frontend
-    npm run dev
-    ```
+```bash
+npm install
+```
 
----
+### Environment Setup
 
-## 📜 Roadmap
+Copy `.env.example` to `.env` and configure:
 
-*   [x] **Core Contracts**: Hybrid Router, Private Pool, Reserve Manager.
-*   [x] **Basic UI**: Swap & Pool Interfaces.
-*   [ ] **Value Attestation Layer**: Event Engine & Proof Generation.
-*   [ ] **Merchant Adapters**: Integration with real-world APIs.
-*   [ ] **Credit Terminal**: Live spend interface.
+```bash
+DEPLOYER_PRIVATE_KEY=your_private_key
+BASE_RPC=https://mainnet.base.org
+SOVR_TOKEN=0x65e75d0fc656a2e81ef17e9a2a8da58d82390422
+```
+
+### Compile Contracts
+
+```bash
+npx hardhat compile
+```
+
+### Run Tests
+
+```bash
+npx hardhat test
+```
+
+### Deploy Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-*From Power to Peace.*
+## Deployed Contracts (Base Mainnet)
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| SOVR Token | `0x65e75d0fc656a2e81ef17e9a2a8da58d82390422` | Value token |
+| sFIAT | `0x2c98e9c8ba005dc690d98e2e31a4811c094e0be3` | Stablecoin |
+| ReserveManager | `0xed3db8f97024a3be5f5ae22f27024e5e94fad64a` | Collateral |
+| SOVRPrivatePool | `0x18d4a13a0116b360efddb72aa626721cfa2a8228` | Liquidity pool |
+| SOVRProgrammablePool | `0x4f9b7a45b5234ca1cc96980d2cb0f49768d26622` | Programmable pool |
+| SOVRHybridRouter V2 | `0xf682bd9789c0a66f2cb82ecc13fc6b43d7b58830` | Main router |
+| AttestorOracle | `0xaca71bc598139d9167414ae666f7cd9377b871f7` | Attestation |
+| TWAPHelper | `0xa3620e31fb37b7de32fadf5c476d93c080fe3ad4` | Price oracle |
+
+---
+
+## Architecture
+
+```
+User → Credit Terminal
+  ↓
+Spend Engine (VAL)
+  ↓
+Attestation Engine
+  ↓
+Merchant Adapter (Square/Tango/etc)
+  ↓
+Real-World Value (Gift Card/Virtual Card)
+```
+
+### Value Flow
+
+1. User deposits value → Receives attested credit
+2. User requests spend → Attestation generated
+3. Attestation verified → Merchant adapter called
+4. Gift card issued → User receives value
+5. Event logged → Blockchain record created
+
+---
+
+## Key Features
+
+✅ **Cryptographic Attestation** - EIP-191 compliant signatures  
+✅ **TWAP Oracle** - Manipulation-resistant pricing  
+✅ **Merchant Agnostic** - Works with any payment provider  
+✅ **Immutable Audit Trail** - On-chain event registry  
+✅ **Real-World Value** - Instant gift card delivery  
+✅ **No Crypto Knowledge Required** - Users spend credit, not tokens  
+
+---
+
+## Development
+
+### Project Structure
+
+```
+sovr_hybrid_engineV2/
+├── contracts/          # Smart contracts (8 production files)
+├── val/                # Value Attestation Layer
+│   ├── core/          # Attestation & spend engines
+│   ├── events/        # Event types & logging
+│   ├── adapters/      # Merchant integrations
+│   └── merchant_triggers/  # Adapter interfaces
+├── frontend/          # React UI
+├── scripts/           # Deployment scripts
+├── test/              # Test suite
+├── deployment/        # Deployment records
+└── archive/           # Obsolete files (preserved)
+```
+
+### Adding a Merchant Adapter
+
+1. Create adapter in `/val/adapters/`
+2. Implement `IMerchantValueAdapter` interface
+3. Register in `VALSystem` constructor
+4. Add to Credit Terminal UI
+
+Example:
+
+```typescript
+export class MyAdapter implements IMerchantValueAdapter {
+  async issueValue(request: ValueRequest): Promise<ValueResponse> {
+    // Call merchant API
+    // Return gift card/value
+  }
+}
+```
+
+---
+
+## Testing
+
+### Unit Tests
+
+```bash
+npx hardhat test
+```
+
+### Integration Tests
+
+```bash
+npx hardhat test test/hybrid.spec.js
+```
+
+### Frontend Tests
+
+```bash
+cd frontend
+npm test
+```
+
+---
+
+## Deployment
+
+### Deploy Router V2
+
+```bash
+npx hardhat run scripts/deploy_router_v2.js --network base
+```
+
+### Verify Deployment
+
+```bash
+npx hardhat run scripts/verify_deployment.js --network base
+```
+
+---
+
+## Security
+
+- ✅ ReentrancyGuard on all user functions
+- ✅ Exact token approvals (no infinite approvals)
+- ✅ Input validation everywhere
+- ✅ Event logging for all state changes
+- ✅ TWAP oracle for price feeds
+- ✅ 24-hour attestation validity
+
+---
+
+## Documentation
+
+- [VAL Implementation Plan](./archive/docs/val_implementation_plan.md)
+- [Router V2 Deployment](./deployment/router_v2_deployment.md)
+- [SOVR Narrative](./SOVR_NARRATIVE.md)
+
+---
+
+## Support
+
+For issues or questions:
+- Check deployment artifacts in `/deployment/`
+- Review contract source in `/contracts/`
+- Test locally: `npx hardhat node --fork $BASE_RPC`
+
+---
+
+## License
+
+MIT
+
+---
+
+**Built with ❤️ by the SOVR Empire**
+
+*This is a value creation machine, not a crypto project.*

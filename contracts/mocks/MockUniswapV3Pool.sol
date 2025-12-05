@@ -20,4 +20,13 @@ contract MockUniswapV3Pool is IUniswapV3Pool {
         slot0.sqrtPriceX96 = sqrtPriceX96;
         slot0.unlocked = true;
     }
+
+    function observe(uint32[] calldata secondsAgos) external view override returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s) {
+        // Mock implementation - returns dummy data for testing
+        tickCumulatives = new int56[](secondsAgos.length);
+        secondsPerLiquidityCumulativeX128s = new uint160[](secondsAgos.length);
+        for (uint i = 0; i < secondsAgos.length; i++) {
+            tickCumulatives[i] = int56(int24(slot0.tick)) * int56(int32(secondsAgos[i]));
+        }
+    }
 }
