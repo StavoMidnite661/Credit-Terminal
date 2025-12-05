@@ -1,0 +1,88 @@
+# ==============================================
+# SHADOW SWAP FRONTEND ENVIRONMENT VARIABLES
+# ==============================================
+# Copy this to frontend/.env.local and fill in your values
+
+# ---------------------------------------------
+# WALLET CONNECT (REQUIRED for RainbowKit)
+# ---------------------------------------------
+# Get your free Project ID from: https://cloud.walletconnect.com
+# 1. Sign up at cloud.walletconnect.com
+# 2. Create a new project
+# 3. Copy the Project ID and paste it below
+NEXT_PUBLIC_WALLET_CONNECT_ID=your_wallet_connect_project_id_here
+
+# ---------------------------------------------
+# RPC PROVIDERS (Optional - improves performance)
+# ---------------------------------------------
+# Get free API keys from:
+# - Alchemy: https://www.alchemy.com
+# - Infura: https://www.infura.io
+
+# Ethereum Mainnet
+NEXT_PUBLIC_RPC_ETHEREUM=https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+
+# Base Mainnet (L2 - Lower fees, Coinbase-backed)
+NEXT_PUBLIC_RPC_BASE=https://base-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+
+# Base Sepolia Testnet
+NEXT_PUBLIC_RPC_BASE_SEPOLIA=https://base-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+
+# Local Hardhat (for development)
+NEXT_PUBLIC_RPC_LOCALHOST=http://127.0.0.1:8545
+
+# ---------------------------------------------
+# CONTRACT ADDRESSES (Override defaults)
+# ---------------------------------------------
+# These are already hardcoded in addresses.ts
+# Uncomment and update if you redeploy contracts
+
+# Hardhat Local Network
+# NEXT_PUBLIC_SOVR_TOKEN_HARDHAT=0x5FbDB2315678afecb367f032d93F642f64180aa3
+# NEXT_PUBLIC_USDC_HARDHAT=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+# NEXT_PUBLIC_SOVR_HYBRID_ROUTER_HARDHAT=0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
+
+# Base Mainnet (Update after mainnet deployment)
+# NEXT_PUBLIC_SOVR_TOKEN_BASE=0x0000000000000000000000000000000000000000
+# NEXT_PUBLIC_USDC_BASE=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+# NEXT_PUBLIC_SOVR_HYBRID_ROUTER_BASE=0x0000000000000000000000000000000000000000
+
+# Base Sepolia Testnet (Update after testnet deployment)
+# NEXT_PUBLIC_SOVR_TOKEN_BASE_SEPOLIA=0x0000000000000000000000000000000000000000
+# NEXT_PUBLIC_USDC_BASE_SEPOLIA=0x036CbD53842c5426634e7929541eC2318f3dCF7e
+# NEXT_PUBLIC_SOVR_HYBRID_ROUTER_BASE_SEPOLIA=0x0000000000000000000000000000000000000000
+
+# ---------------------------------------------
+# FEATURE FLAGS (Optional)
+# ---------------------------------------------
+NEXT_PUBLIC_ENABLE_LIMIT_ORDERS=false
+NEXT_PUBLIC_ENABLE_SEND_FEATURE=false
+NEXT_PUBLIC_ENABLE_BUY_FEATURE=false
+
+# ---------------------------------------------
+# APP CONFIGURATION
+# ---------------------------------------------
+# Default slippage tolerance (in basis points, 100 = 1%)
+NEXT_PUBLIC_DEFAULT_SLIPPAGE=100
+
+# Transaction deadline (in minutes)
+NEXT_PUBLIC_TX_DEADLINE=20
+
+# Enable testnet mode
+NEXT_PUBLIC_TESTNET_MODE=true
+
+# ---------------------------------------------
+# METADATA & SEO
+# ---------------------------------------------
+NEXT_PUBLIC_APP_NAME=Shadow Swap
+NEXT_PUBLIC_APP_DESCRIPTION=Trade in the shadows. Sovereign liquidity for the people.
+NEXT_PUBLIC_APP_URL=https://shadowswap.xyz
+
+# ---------------------------------------------
+# IMPORTANT NOTES
+# ---------------------------------------------
+# 1. Variables with "NEXT_PUBLIC_" prefix are exposed to the browser
+# 2. Variables WITHOUT "NEXT_PUBLIC_" are server-side only
+# 3. Never commit .env.local to git (it's in .gitignore)
+# 4. Restart dev server after changing environment variables
+# 5. The ONLY REQUIRED variable is NEXT_PUBLIC_WALLET_CONNECT_ID

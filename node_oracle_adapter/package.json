@@ -1,0 +1,8 @@
+{
+  "name": "sovr-oracle-adapter",
+  "version": "1.0.0",
+  "dependencies": {
+    "ethers": "^6.8.0",
+    "dotenv": "^16.3.1"
+  }
+}
