@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOVR Console - Credit Terminal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'aurora-glow': 'rgba(120,180,255,0.25)',
+            'card-bg': 'rgba(255,255,255,0.04)',
+            'card-border': 'rgba(255,255,255,0.06)',
+            'accent-glow': 'rgba(120,180,255,0.14)',
+            'shadow-glow': 'rgba(100,140,255,0.06)',
+          },
+          backdropBlur: {
+            xs: '2px',
+          },
+          blur: {
+            glow: '36px',
+          },
+          animation: {
+            'float': 'float 3s ease-in-out infinite',
+            'bounce-subtle': 'bounce-subtle 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+            'entrance': 'entrance 0.5s ease-out',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            'bounce-subtle': {
+              '0%, 80%, 100%': { transform: 'scale(1)' },
+              '40%': { transform: 'scale(1.02)' },
+            },
+            entrance: {
+              '0%': { opacity: 0, transform: 'translateY(20px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            },
+          },
+          boxShadow: {
+            glow: '0 8px 24px 0 rgba(100,140,255,0.06)',
+          },
+          borderRadius: {
+            card: '14px',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --glass-blur: 12px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-snap-type: none !important;
+      }
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px) saturate(120%);
+      box-shadow: 0 8px 24px rgba(100,140,255,0.06);
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      inset: -40% -20% -40% -20%;
+      background: radial-gradient(circle at 50% 20%, rgba(120,180,255,0.14), transparent 36%);
+      filter: blur(36px);
+      z-index: -1;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+    .glass-card-hover {
+      @apply motion-safe:hover:-translate-y-1.5 motion-safe:hover:shadow-glow/150;
+    }
+    .btn-glow {
+      background: rgba(120,180,255,0.1);
+      border: 1px solid rgba(120,180,255,0.2);
+      box-shadow: 0 4px 12px rgba(120,180,255,0.15);
+    }
+    .btn-glow:hover {
+      box-shadow: 0 6px 20px rgba(120,180,255,0.25);
+      transform: translateY(-1px);
+    }
+    body {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(120,180,255,0.25), transparent 70%), #000000;
+      min-height: 100vh;
+    }
+    .masonry {
+      columns: 1 280px;
+      column-gap: 1.5rem;
+      @media (min-width: 640px) { columns: 2 280px; }
+      @media (min-width: 1024px) { columns: 3 320px; }
+      @media (min-width: 1536px) { columns: 4 350px; }
+    }
+    .masonry > * {
+      break-inside: avoid;
+      margin-bottom: 1.5rem;
+    }
+    .timeline-item {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(120,180,255,0.3), transparent);
+    }
+    [data-focus-visible] {
+      outline: 2px solid rgba(120,180,255,0.5);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased text-white">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur-sm bg-black/30 border-b border-white/5 py-4 px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">SOVR Console</h1>
+        <span class="px-3 py-1 bg-blue-500/20 rounded-full text-xs font-medium text-blue-100">Credit Terminal</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div id="walletBalance" class="text-lg font-semibold text-blue-400">$0.00</div>
+        <button id="loginBtn" class="px-4 py-2 btn-glow rounded-lg font-medium motion-safe:animate-bounce-subtle" aria-label="Login to console">Enter Console</button>
+        <button id="logoutBtn" class="hidden px-4 py-2 btn-glow rounded-lg font-medium" aria-label="Logout">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="pt-20 pb-12 px-6 max-w-7xl mx-auto">
+    <!-- Login Screen -->
+    <section id="loginScreen" class="min-h-screen flex items-center justify-center">
+      <div class="glass-card p-12 max-w-md w-full text-center motion-safe:animate-entrance">
+        <h2 class="text-3xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Welcome to SOVR</h2>
+        <p class="mb-8 text-gray-300">Secure Value Attestation Layer for seamless credit deposits and merchant spends.</p>
+        <button id="quickLogin" class="w-full px-6 py-4 btn-glow text-lg font-semibold rounded-xl motion-safe:hover:scale-105">Demo Login</button>
+      </div>
+    </section>
+
+    <!-- Console Overview (logged in) -->
+    <section id="consoleScreen" class="hidden">
+      <div class="mb-12">
+        <h2 class="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Credit Terminal</h2>
+        <p class="text-xl text-gray-400">Deposit value, attest, and spend securely with merchant adapters.</p>
+      </div>
+
+      <!-- Key Actions Grid -->
+      <div class="masonry mb-12">
+        <div class="glass-card p-8 glass-card-hover cursor-pointer" onclick="openModal('depositModal')" role="button" tabindex="0" aria-label="Deposit credits">
+          <div class="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+            <span class="text-2xl">💰</span>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Deposit Value</h3>
+          <p class="text-gray-400 mb-6">Fund your wallet with fiat or crypto. VAL attestation issued instantly.</p>
+          <div class="w-full h-1 bg-blue-500/30 rounded-full"><div class="h-1 bg-blue-400 w-1/2 rounded-full motion-safe:animate-pulse"></div></div>
+        </div>
+
+        <div class="glass-card p-8 glass-card-hover cursor-pointer" onclick="openModal('spendModal')" role="button" tabindex="0" aria-label="Request spend">
+          <div class="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+            <span class="text-2xl">🛒</span>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Request Spend</h3>
+          <p class="text-gray-400 mb-6">Select merchant, amount, and receive gift/virtual card.</p>
+          <div class="w-full h-1 bg-green-500/30 rounded-full"><div class="h-1 bg-green-400 w-3/4 rounded-full"></div></div>
+        </div>
+
+        <div class="glass-card p-8">
+          <h3 class="text-xl font-bold mb-6">Wallet Balance</h3>
+          <div id="balanceCard" class="text-3xl font-bold text-blue-400 mb-2">$1,234.56</div>
+          <p class="text-gray-400 text-sm">Verified by VAL attestation.</p>
+        </div>
+      </div>
+
+      <!-- Balance History Timeline -->
+      <div class="mb-12">
+        <h3 class="text-2xl font-bold mb-6">Event Timeline</h3>
+        <div id="eventList" class="space-y-6 max-h-96 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Recommended Merchants Masonry -->
+      <div>
+        <h3 class="text-2xl font-bold mb-6">Recommended Merchants</h3>
+        <div class="masonry">
+          <div class="glass-card p-6 glass-card-hover cursor-pointer" data-merchant="Square" onclick="selectMerchant('Square')" role="button" tabindex="0">
+            <div class="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center mb-4"><span>□</span></div>
+            <h4 class="font-bold">Square</h4>
+            <p class="text-sm text-gray-400">POS & eCommerce</p>
+          </div>
+          <div class="glass-card p-6 glass-card-hover cursor-pointer" data-merchant="Tango Card" onclick="selectMerchant('Tango Card')" role="button" tabindex="0">
+            <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4"><span>🎁</span></div>
+            <h4 class="font-bold">Tango Card</h4>
+            <p class="text-sm text-gray-400">Gift Cards</p>
+          </div>
+          <div class="glass-card p-6 glass-card-hover cursor-pointer" data-merchant="Stripe" onclick="selectMerchant('Stripe')" role="button" tabindex="0">
+            <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4"><span>$</span></div>
+            <h4 class="font-bold">Stripe</h4>
+            <p class="text-sm text-gray-400">Payments</p>
+          </div>
+          <div class="glass-card p-6 glass-card-hover cursor-pointer" data-merchant="Coinbase" onclick="selectMerchant('Coinbase')" role="button" tabindex="0">
+            <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4"><span>₿</span></div>
+            <h4 class="font-bold">Coinbase</h4>
+            <p class="text-sm text-gray-400">Crypto Commerce</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <div id="overlay" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" tabindex="-1"></div>
+
+  <!-- Deposit Modal -->
+  <div id="depositModal" class="hidden fixed inset-0 z-50 p-6 flex items-center justify-center" role="dialog">
+    <div class="glass-card p-8 max-w-md w-full max-h-[90vh] overflow-y-auto motion-safe:animate-entrance" tabindex="-1">
+      <h3 class="text-2xl font-bold mb-6">Deposit Value</h3>
+      <form id="depositForm">
+        <div class="mb-6">
+          <label class="block text-sm font-medium mb-2">Amount ($)</label>
+          <input type="number" id="depositAmount" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50" placeholder="1000" min="1" step="0.01" required aria-describedby="deposit-desc">
+          <p id="deposit-desc" class="text-xs text-gray-500 mt-1">Minimum $10. Fiat or crypto supported.</p>
+        </div>
+        <div class="flex space-x-3">
+          <button type="button" onclick="closeModal('depositModal')" class="flex-1 px-4 py-3 border border-white/20 rounded-xl text-gray-300 hover:text-white motion-safe:hover:bg-white/10">Cancel</button>
+          <button type="submit" class="flex-1 px-6 py-3 btn-glow font-semibold rounded-xl motion-safe:hover:scale-105">Deposit & Attest</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Spend Modal -->
+  <div id="spendModal" class="hidden fixed inset-0 z-50 p-6 flex items-center justify-center">
+    <div class="glass-card p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-2xl font-bold mb-6">Request Spend</h3>
+      <div class="mb-6">
+        <label class="block text-sm font-medium mb-2">Merchant</label>
+        <p id="selectedMerchant" class="font-semibold text-lg mb-2">--</p>
+        <p class="text-sm text-gray-400">Selected: <span id="merchantDetails"></span></p>
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium mb-2">Amount ($)</label>
+        <input type="number" id="spendAmount" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-green-400 focus:ring-2 focus:ring-green-400/50" placeholder="100" min="1" max="1234.56" step="0.01" required>
+      </div>
+      <div class="flex space-x-3">
+        <button type="button" onclick="closeModal('spendModal')" class="flex-1 px-4 py-3 border border-white/20 rounded-xl text-gray-300 hover:text-white motion-safe:hover:bg-white/10">Cancel</button>
+        <button id="confirmSpend" class="flex-1 px-6 py-3 btn-glow bg-green-500/20 border-green-400 font-semibold rounded-xl disabled:opacity-50" disabled>Execute Spend</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt Modal (Gift Card) -->
+  <div id="receiptModal" class="hidden fixed inset-0 z-50 p-6 flex items-center justify-center">
+    <div class="glass-card p-8 max-w-lg w-full">
+      <h3 class="text-2xl font-bold mb-6 text-green-400">Gift Card Issued!</h3>
+      <p id="receiptDetails"></p>
+      <div class="mt-8 flex space-x-3">
+        <button onclick="showProof()" class="flex-1 px-4 py-3 btn-glow bg-blue-500/20 border-blue-400 font-semibold rounded-xl">View VAL Proof</button>
+        <button onclick="closeModal('receiptModal')" class="flex-1 px-4 py-3 border border-white/20 rounded-xl text-gray-300 hover:text-white">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proof Modal -->
+  <div id="proofModal" class="hidden fixed inset-0 z-50 p-6 flex items-center justify-center">
+    <div class="glass-card p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-2xl font-bold mb-6">VAL Attestation Proof</h3>
+      <div class="mb-6 p-6 bg-blue-500/10 border border-blue-400/30 rounded-xl">
+        <p class="font-mono text-sm text-green-400 mb-2">✅ Signature Verified (EIP-191)</p>
+        <p class="font-mono text-xs text-gray-400">Signature: 0xabc123...def456</p>
+        <p class="font-mono text-xs text-gray-400">Merkle Root: 0x789ghi...jkl012</p>
+      </div>
+      <button onclick="closeModal('proofModal')" class="w-full px-6 py-3 btn-glow rounded-xl">Close</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-20 right-6 z-50 space-y-2"></div>
+
+  <script>
+    // State
+    let state = JSON.parse(localStorage.getItem('sovrState')) || {
+      loggedIn: false,
+      balance: 1234.56,
+      events: [
+        { id: '1', type: 'CREDIT_DEPOSITED', amount: 1000, time: Date.now() - 86400000, sig: '0x123...', verified: true },
+        { id: '2', type: 'SPEND_EXECUTED', amount: -50, time: Date.now() - 3600000, sig: '0x456...', verified: true, merchant: 'Tango Card' },
+      ],
+      currentMerchant: '',
+      currentEventId: null,
+    };
+
+    // Init
+    function init() {
+      updateUI();
+      document.getElementById('quickLogin').onclick = login;
+      document.getElementById('loginBtn').onclick = login;
+      document.getElementById('logoutBtn').onclick = logout;
+      document.getElementById('depositForm').onsubmit = deposit;
+      document.getElementById('confirmSpend').onclick = spendExecute;
+      document.getElementById('spendAmount').oninput = toggleConfirm;
+      window.onkeydown = (e) => { if (e.key === 'Escape') closeAllModals(); };
+    }
+
+    function updateUI() {
+      localStorage.setItem('sovrState', JSON.stringify(state));
+      document.getElementById('walletBalance').textContent = `$${state.balance.toFixed(2)}`;
+      document.getElementById('balanceCard').textContent = `$${state.balance.toFixed(2)}`;
+      renderEvents();
+      if (state.loggedIn) {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('consoleScreen').classList.remove('hidden');
+        document.getElementById('loginBtn').classList.add('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+      } else {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('consoleScreen').classList.add('hidden');
+        document.getElementById('loginBtn').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.add('hidden');
+      }
+    }
+
+    function login() {
+      state.loggedIn = true;
+      showToast('Logged in to SOVR Console', 'success');
+      updateUI();
+    }
+
+    function logout() {
+      state.loggedIn = false;
+      closeAllModals();
+      updateUI();
+    }
+
+    function renderEvents() {
+      const list = document.getElementById('eventList');
+      list.innerHTML = state.events.slice(-10).reverse().map(e => `
+        <div class="glass-card p-6 timeline-item">
+          <div class="flex justify-between items-start mb-2">
+            <span class="font-bold text-lg ${e.type.includes('DEPOSIT') ? 'text-blue-400' : 'text-green-400'}">${e.type}</span>
+            <button onclick="verifyEvent('${e.id}')" class="text-xs px-3 py-1 bg-blue-500/20 rounded-full border border-blue-400/50 hover:bg-blue-500/30" aria-label="Verify ${e.id}">Verify</button>
+          </div>
+          <p class="text-2xl font-bold">$${Math.abs(e.amount).toFixed(2)}</p>
+          <p class="text-sm text-gray-400">${new Date(e.time).toLocaleString()}${e.merchant ? ` • ${e.merchant}` : ''}</p>
+          ${e.verified ? '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 mt-2">✅ Verified</span>' : ''}
+        </div>
+      `).join('');
+    }
+
+    function deposit(e) {
+      e.preventDefault();
+      const amt = parseFloat(document.getElementById('depositAmount').value);
+      if (amt < 10) return showToast('Minimum $10', 'error');
+      state.balance += amt;
+      state.events.unshift({ id: Date.now().toString(), type: 'CREDIT_DEPOSITED', amount: amt, time: Date.now(), sig: '0x' + Math.random().toString(16).slice(2,10), verified: true });
+      closeModal('depositModal');
+      showToast(`Deposited $${amt.toFixed(2)}. VAL attested!`, 'success');
+      updateUI();
+    }
+
+    function selectMerchant(merchant) {
+      state.currentMerchant = merchant;
+      document.getElementById('selectedMerchant').textContent = merchant;
+      document.getElementById('merchantDetails').textContent = merchant === 'Square' ? 'POS' : merchant === 'Tango Card' ? 'Gift Cards' : merchant === 'Stripe' ? 'Payments' : 'Crypto';
+      openModal('spendModal');
+    }
+
+    function toggleConfirm() {
+      const amt = parseFloat(document.getElementById('spendAmount').value);
+      document.getElementById('confirmSpend').disabled = !amt || amt > state.balance || amt < 1;
+    }
+
+    function spendExecute() {
+      const amt = parseFloat(document.getElementById('spendAmount').value);
+      state.currentEventId = Date.now().toString();
+      showToast('Spend authorized. Queuing merchant adapter...', 'info');
+      closeModal('spendModal');
+      // Simulate poll/delay
+      setTimeout(() => {
+        state.balance -= amt;
+        state.events.unshift({
+          id: state.currentEventId,
+          type: 'SPEND_EXECUTED',
+          amount: -amt,
+          time: Date.now(),
+          sig: '0x' + Math.random().toString(16).slice(2,10),
+          verified: true,
+          merchant: state.currentMerchant
+        });
+        document.getElementById('receiptDetails').innerHTML = `
+          <p class="text-2xl font-bold mb-4 text-green-400">$${amt.toFixed(2)} ${state.currentMerchant} Gift Card</p>
+          <div class="bg-green-500/10 border-2 border-dashed border-green-400 p-6 rounded-xl mb-4 text-center">
+            <p class="text-4xl font-mono tracking-wider mb-2">GIFT-${state.currentEventId.slice(-8).toUpperCase()}-ABCD</p>
+            <p class="text-sm text-gray-400">Redeem at merchant portal</p>
+          </div>
+          <p class="text-gray-400 mb-6">Status: SUCCESS (2.1s)</p>
+        `;
+        openModal('receiptModal');
+        updateUI();
+      }, 2000 + Math.random()*1000);
+    }
+
+    function verifyEvent(id) {
+      const event = state.events.find(e => e.id === id);
+      event.verified = true;
+      showToast('Attestation verified on-chain proof', 'success');
+      updateUI();
+    }
+
+    function showProof() {
+      closeModal('receiptModal');
+      openModal('proofModal');
+    }
+
+    // Modals & Toasts
+    const modals = ['depositModal', 'spendModal', 'receiptModal', 'proofModal'];
+    function openModal(id) {
+      document.getElementById('overlay').classList.remove('hidden');
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById(id).focus();
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      closeOverlay();
+    }
+    function closeAllModals() {
+      modals.forEach(closeModal);
+      closeOverlay();
+    }
+    function closeOverlay() {
+      const openModals = modals.filter(id => !document.getElementById(id).classList.contains('hidden'));
+      if (openModals.length === 0) document.getElementById('overlay').classList.add('hidden');
+    }
+    function showToast(msg, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `glass-card p-4 max-w-sm shadow-lg motion-safe:animate-entrance ${type === 'success' ? 'border-green-400/50' : type === 'error' ? 'border-red-400/50' : 'border-blue-400/50'}`;
+      toast.innerHTML = `<p>${msg}</p><button class="ml-auto text-gray-400 hover:text-white" onclick="this.parentElement.remove()">&times;</button>`;
+      document.getElementById('toastContainer').appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // Focus trap for modals (basic)
+    document.querySelectorAll('[role="dialog"]').forEach(modal => {
+      modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          if (focusable.length === 0) return;
+          const first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey) {
+            if (document.activeElement === first) {
+              e.preventDefault();
+              last.focus();
+            }
+          } else {
+            if (document.activeElement === last) {
+              e.preventDefault();
+              first.focus();
+            }
+          }
+        }
+      });
+    });
+
+    init();
+    updateUI();
+  </script>
+</body>
+</html>

@@ -71,6 +71,9 @@ export class VALSystem {
 export * from './events/types';
 export * from './core/attestation';
 export * from './core/spend_engine';
+export * from './core/oracle-ledger-bridge-service';
+export * from './core/tigerbeetle_service';
 export * from './merchant_triggers/adapter_interface';
 export * from './adapters/square_adapter';
 export * from './adapters/tango_adapter';
+export * from './adapters/instacart_adapter';

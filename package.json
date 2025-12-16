@@ -9,7 +9,9 @@
     "seed:fork": "hardhat run scripts/seed_pools.js --network fork"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.0.12",
     "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@openzeppelin/contracts": "^4.9.3",
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-periphery": "^1.0.0",
@@ -20,6 +22,7 @@
     "hardhat": "^2.17.0"
   },
   "dependencies": {
-    "bignumber.js": "^9.3.1"
+    "bignumber.js": "^9.3.1",
+    "tigerbeetle-node": "^0.16.66"
   }
 }

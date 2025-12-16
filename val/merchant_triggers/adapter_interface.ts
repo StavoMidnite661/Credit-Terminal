@@ -76,7 +76,7 @@ export interface WebhookResponse {
   processedAt: Date;
 }
 
-export type MerchantType = 'square' | 'stripe' | 'coinbase' | 'visa' | 'tango';
+export type MerchantType = 'square' | 'stripe' | 'coinbase' | 'visa' | 'tango' | 'instacart';
 
 export class MerchantAdapterError extends Error {
   constructor(

@@ -90,23 +90,21 @@ npm run dev
 ## Architecture
 
 ```
-User → Credit Terminal
+User → Studio (USD Gateway)
   ↓
-Spend Engine (VAL)
+Attestor (SAN) [Pull Sig]
   ↓
-Attestation Engine
+Stripe (PaymentIntent + Metadata)
   ↓
-Merchant Adapter (Square/Tango/etc)
-  ↓
-Real-World Value (Gift Card/Virtual Card)
+Settlement Webhook → Ledger & Burn sFIAT
 ```
 
 ### Value Flow
 
-1. User deposits value → Receives attested credit
-2. User requests spend → Attestation generated
-3. Attestation verified → Merchant adapter called
-4. Gift card issued → User receives value
+1. User Authorizes Payment → Studio requests Attestation
+2. Attestor Signs → Studio binds signature to Stripe Payment
+3. Stripe processes transaction → Webhook triggers settlement
+4. Gateway updates Ledger → Burns sFIAT/POSCR on-chain
 5. Event logged → Blockchain record created
 
 ---

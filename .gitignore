@@ -12,14 +12,51 @@ build/
 dist/
 out/
 
-# Misc
-.DS_Store
-*.pem
+# Environment files (contains secrets)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example
+
+# IDE and Editor
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Certificate and key files
+*.pem
+*.key
+*.ppk
+*.cer
+*.crt
+*.csr
+id_rsa*
+id_dsa*
+
+# Build and cache files
+artifacts/
+cache/
+typechain-types/
+edr-cache/
+.next/
+next-env.d.ts
+.vercel/
+*.tsbuildinfo
+
+# Log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -36,6 +73,40 @@ edr-cache/
 next-env.d.ts
 .vercel/
 *.tsbuildinfo
+
+# GitHub
+.github/
+
+# Local development
+*.local
+*.backup
+*.bak
+
+# IDE and Editor
+.vscode/
+.idea/
+
+# Debug and test files
+.test/
+.test.js
+.test.ts
+.spec/
+.spec.js
+.spec.ts
+
+# Documentation build files
+_docs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # Editor
 .vscode/

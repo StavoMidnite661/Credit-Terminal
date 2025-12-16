@@ -1,0 +1,32 @@
+{
+    "network": "Base",
+    "chainId": 8453,
+    "note": "V2 Production Deployment - December 5, 2025",
+    "active": {
+        "SOVR": "0x65e75d0fc656a2e81ef17e9a2a8da58d82390422",
+        "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "sFIAT": "0x2c98e9c8ba005dc690d98e2e31a4811c094e0be3",
+        "ReserveManager": "0xed3db8f97024a3be5f5ae22f27024e5e94fad64a",
+        "PrivatePool": "0x18d4a13a0116b360efddb72aa626721cfa2a8228",
+        "ProgrammablePool": "0x4f9b7a45b5234ca1cc96980d2cb0f49768d26622",
+        "SOVRHybridRouter_v2": "0x200dbb33ff5ff1a75d9d7f49b88e8361349eda4d",
+        "TWAPHelper": "0xf60090f7b6006593ca818aa71f9bffc7460ccb0c",
+        "AttestorOracle": "0xaca71bc598139d9167414ae666f7cd9377b871f7"
+    },
+    "abandoned": {
+        "note": "Previous router deployments - do NOT use",
+        "HybridRouter_old1": "0xcb410361687926949953f84df7bd04a8d1cfe616",
+        "HybridRouter_old2": "0xf682bd9789c0a66f2cb82ecc13fc6b43d7b58830",
+        "TWAPHelper_old": "0xa3620e31fb37b7de32fadf5c476d93c080fe3ad4"
+    },
+    "references": {
+        "UniswapRouter": "0x2626664c2603336E57B271c5C0b26F421741e481",
+        "UniswapFactory": "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
+        "PositionManager": "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1"
+    },
+    "deploymentTxs": {
+        "TWAPHelper": "0x27551eb3e67049aa25eb04b08afdcece60c37f6bc74632e648d418b8b407d7aa",
+        "SOVRHybridRouter_v2": "0x9772144b089a1b39a45f8c498e8269f293461e83c68d48adea55b39e7f8af34f"
+    },
+    "lastUpdated": "2025-12-05T19:36:00Z"
+}

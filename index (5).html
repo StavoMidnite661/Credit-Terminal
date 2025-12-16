@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOVR Console - Credit Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #000000;
+            --glow-accent: rgba(120,180,255,0.14);
+            --card-bg: rgba(255,255,255,0.03);
+            --card-border: rgba(255,255,255,0.06);
+            --glass-blur: 12px;
+            --accent-blue: #78b4ff;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255,255,255,0.7);
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(120,180,255,0.25), transparent 70%), #000000;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+            box-shadow: 0 8px 24px rgba(100,140,255,0.06);
+            border-radius: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            inset: -40% -20% -40% -20%;
+            background: radial-gradient(circle at 50% 20%, var(--glow-accent), transparent 36%);
+            filter: blur(36px);
+            z-index: -1;
+            opacity: 0.9;
+        }
+
+        .floating-card {
+            transform: translateY(0);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .floating-card:hover {
+            transform: translateY(-6px);
+        }
+
+        .glow-button {
+            background: linear-gradient(135deg, rgba(120,180,255,0.2), rgba(120,180,255,0.05));
+            border: 1px solid rgba(120,180,255,0.3);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(120,180,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .glow-button:hover::before {
+            left: 100%;
+        }
+
+        .micro-bounce {
+            animation: microBounce 0.6s ease-out;
+        }
+
+        @keyframes microBounce {
+            0% { transform: scale(0.95); opacity: 0; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(120,180,255,0.3); }
+            50% { box-shadow: 0 0 30px rgba(120,180,255,0.6); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .floating-card, .glow-button::before, .micro-bounce, .fade-in-up, .pulse-glow {
+                animation: none;
+                transition: none;
+            }
+        }
+
+        .nav-item {
+            position: relative;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-blue);
+            transition: width 0.3s ease;
+        }
+
+        .nav-item:hover::after {
+            width: 100%;
+        }
+
+        .nav-item.active {
+            color: var(--accent-blue);
+        }
+
+        .nav-item.active::after {
+            width: 100%;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transform: translateX(100%);
+            animation: slideInToast 0.3s forwards;
+        }
+
+        @keyframes slideInToast {
+            to { transform: translateX(0); }
+        }
+
+        .spinner {
+            border: 2px solid rgba(255,255,255,0.1);
+            border-left: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .merchant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, rgba(120,180,255,0.1), rgba(120,180,255,0.02));
+        }
+
+        .event-item {
+            border-left: 2px solid rgba(120,180,255,0.3);
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .event-item.success {
+            border-left-color: rgba(34,197,94,0.6);
+        }
+
+        .event-item.pending {
+            border-left-color: rgba(251,191,36,0.6);
+        }
+
+        .event-item.failed {
+            border-left-color: rgba(239,68,68,0.6);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="glass-card mx-4 mt-4 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-sm">S</span>
+            </div>
+            <span class="text-xl font-semibold">SOVR Console</span>
+        </div>
+        <div class="flex space-x-6">
+            <button class="nav-item active text-sm font-medium" onclick="showSection('overview')">Overview</button>
+            <button class="nav-item text-sm font-medium" onclick="showSection('terminal')">Credit Terminal</button>
+            <button class="nav-item text-sm font-medium" onclick="showSection('wallet')">Wallet</button>
+            <button class="nav-item text-sm font-medium" onclick="showSection('admin')">Admin</button>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-sm font-medium">
+                U
+            </div>
+            <span class="text-sm">user@sovrhub.com</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Overview Section -->
+        <section id="overview" class="space-y-6 fade-in-up">
+            <div class="text-center py-12">
+                <h1 class="text-4xl font-bold mb-4">SOVR Credit Terminal</h1>
+                <p class="text-lg text-gray-300 max-w-2xl mx-auto">
+                    Enterprise-grade Value Attestation Layer for secure credit issuance and merchant spending
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass-card floating-card p-6 micro-bounce">
+                    <div class="text-2xl font-bold text-blue-400 mb-2">$12,847.50</div>
+                    <div class="text-sm text-gray-400">Total Value Attested</div>
+                    <div class="mt-4 text-xs text-green-400">↑ 12.3% this month</div>
+                </div>
+                <div class="glass-card floating-card p-6 micro-bounce">
+                    <div class="text-2xl font-bold text-blue-400 mb-2">1,247</div>
+                    <div class="text-sm text-gray-400">Active Credits</div>
+                    <div class="mt-4 text-xs text-green-400">↑ 8.7% this month</div>
+                </div>
+                <div class="glass-card floating-card p-6 micro-bounce">
+                    <div class="text-2xl font-bold text-blue-400 mb-2">98.9%</div>
+                    <div class="text-sm text-gray-400">Success Rate</div>
+                    <div class="mt-4 text-xs text-green-400">↑ 0.3% this month</div>
+                </div>
+            </div>
+
+            <div class="glass-card p-8">
+                <h2 class="text-2xl font-semibold mb-6">Recent Activity</h2>
+                <div class="space-y-4">
+                    <div class="event-item success">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-medium">Credit Attestation Completed</div>
+                                <div class="text-sm text-gray-400">$500.00 • Square Merchant • 2 minutes ago</div>
+                            </div>
+                            <button class="text-blue-400 text-sm hover:underline">View Proof</button>
+                        </div>
+                    </div>
+                    <div class="event-item pending">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-medium">Spend Request Processing</div>
+                                <div class="text-sm text-gray-400">$250.00 • Tango Card • 5 minutes ago</div>
+                            </div>
+                            <button class="text-blue-400 text-sm hover:underline">Track</button>
+                        </div>
+                    </div>
+                    <div class="event-item success">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-medium">Deposit Value Created</div>
+                                <div class="text-sm text-gray-400">$1,000.00 • Coinbase • 12 minutes ago</div>
+                            </div>
+                            <button class="text-blue-400 text-sm hover:underline">View Proof</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Credit Terminal Section -->
+        <section id="terminal" class="hidden space-y-6 fade-in-up">
+            <div class="text-center py-8">
+                <h1 class="text-3xl font-bold mb-4">Credit Terminal</h1>
+                <p class="text-gray-300">Deposit value, request spending, and manage your credits</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- Deposit Section -->
+                <div class="glass-card floating-card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Deposit Value</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Amount</label>
+                            <input type="number" class="w-full px-4 py-3 bg-black bg-opacity-30 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none" placeholder="Enter amount" id="depositAmount">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Source</label>
+                            <select class="w-full px-4 py-3 bg-black bg-opacity-30 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none" id="depositSource">
+                                <option value="coinbase">Coinbase</option>
+                                <option value="stripe">Stripe</option>
+                                <option value="bank">Bank Transfer</option>
+                            </select>
+                        </div>
+                        <button class="glow-button w-full py-3 px-4 rounded-lg font-medium transition-all" onclick="processDeposit()">
+                            <span id="depositBtnText">Create Deposit</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Spend Section -->
+                <div class="glass-card floating-card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Request Spend</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Amount</label>
+                            <input type="number" class="w-full px-4 py-3 bg-black bg-opacity-30 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none" placeholder="Enter amount" id="spendAmount">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Merchant</label>
+                            <select class="w-full px-4 py-3 bg-black bg-opacity-30 border border-gray-600 rounded-lg focus:border-blue-400 focus:outline-none" id="spendMerchant">
+                                <option value="square">Square</option>
+                                <option value="tango">Tango Card</option>
+                                <option value="amazon">Amazon</option>
+                                <option value="starbucks">Starbucks</option>
+                            </select>
+                        </div>
+                        <button class="glow-button w-full py-3 px-4 rounded-lg font-medium transition-all" onclick="processSpend()">
+                            <span id="spendBtnText">Execute Spend</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Merchant Grid -->
+            <div class="glass-card p-6">
+                <h2 class="text-xl font-semibold mb-6">Recommended Merchants</h2>
+                <div class="merchant-grid">
+                    <div class="glass-card floating-card p-4 cursor-pointer" onclick="selectMerchant('amazon')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold">A</div>
+                            <div>
+                                <div class="font-medium">Amazon</div>
+                                <div class="text-sm text-gray-400">Up to $1,000</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card floating-card p-4 cursor-pointer" onclick="selectMerchant('starbucks')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold">S</div>
+                            <div>
+                                <div class="font-medium">Starbucks</div>
+                                <div class="text-sm text-gray-400">Up to $500</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card floating-card p-4 cursor-pointer" onclick="selectMerchant('uber')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center text-white font-bold">U</div>
+                            <div>
+                                <div class="font-medium">Uber</div>
+                                <div class="text-sm text-gray-400">Up to $300</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card floating-card p-4 cursor-pointer" onclick="selectMerchant('netflix')">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center text-white font-bold">N</div>
+                            <div>
+                                <div class="font-medium">Netflix</div>
+                                <div class="text-sm text-gray-400">Up to $100</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Wallet Section -->
+        <section id="wallet" class="hidden space-y-6 fade-in-up">
+            <div class="text-center py-8">
+                <h1 class="text-3xl font-bold mb-4">Wallet & Balance History</h1>
+                <p class="text-gray-300">View your credit balance and transaction history</p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <div class="glass-card balance-card floating-card p-6">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold mb-2">$2,847.50</div>
+                            <div class="text-sm text-gray-400 mb-4">Available Balance</div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-4">
+                                <div class="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full" style="width: 75%"></div>
+                            </div>
+                            <div class="text-xs text-gray-500">75% of monthly limit used</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <div class="glass-card p-6">
+                        <h2 class="text-xl font-semibold mb-6">Transaction History</h2>
+                        <div class="space-y-4">
+                            <div class="event-item success">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-medium">Spend Executed</div>
+                                        <div class="text-sm text-gray-400">$50.00 • Amazon Gift Card • 1 hour ago</div>
+                                        <div class="text-xs text-blue-400 mt-1">Transaction ID: tx_abc123def456</div>
+                                    </div>
+                                    <button class="text-blue-400 text-sm hover:underline">View Receipt</button>
+                                </div>
+                            </div>
+                            <div class="event-item success">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-medium">Credit Attestation</div>
+                                        <div class="text-sm text-gray-400">$500.00 • Square • 3 hours ago</div>
+                                        <div class="text-xs text-blue-400 mt-1">Attestation: 0x1234...5678</div>
+                                    </div>
+                                    <button class="text-blue-400 text-sm hover:underline">Verify</button>
+                                </div>
+                            </div>
+                            <div class="event-item pending">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-medium">Spend Processing</div>
+                                        <div class="text-sm text-gray-400">$25.00 • Starbucks • 5 hours ago</div>
+                                        <div class="text-xs text-yellow-400 mt-1">Awaiting merchant confirmation</div>
+                                    </div>
+                                    <button class="text-blue-400 text-sm hover:underline">Track</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Section -->
+        <section id="admin" class="hidden space-y-6 fade-in-up">
+            <div class="text-center py-8">
+                <h1 class="text-3xl font-bold mb-4">Admin Dashboard</h1>
+                <p class="text-gray-300">Monitor events, adapter status, and system health</p>
+            </div>
+
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="glass-card floating-card p-6">
+                    <div class="text-2xl font-bold text-green-400 mb-2">98.9%</div>
+                    <div class="text-sm text-gray-400">System Uptime</div>
+                </div>
+                <div class="glass-card floating-card p-6">
+                    <div class="text-2xl font-bold text-blue-400 mb-2">23</div>
+                    <div class="text-sm text-gray-400">Active Adapters</div>
+                </div>
+                <div class="glass-card floating-card p-6">
+                    <div class="text-2xl font-bold text-yellow-400 mb-2">5</div>
+                    <div class="text-sm text-gray-400">Pending Requests</div>
+                </div>
+                <div class="glass-card floating-card p-6">
+                    <div class="text-2xl font-bold text-red-400 mb-2">2</div>
+                    <div class="text-sm text-gray-400">Failed Events</div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="glass-card p-6">
+                    <h2 class="text-xl font-semibold mb-6">Adapter Status</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                                <span>Square</span>
+                            </div>
+                            <span class="text-sm text-green-400">Operational</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                                <span>Tango Card</span>
+                            </div>
+                            <span class="text-sm text-green-400">Operational</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                                <span>Stripe</span>
+                            </div>
+                            <span class="text-sm text-yellow-400">Degraded</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                                <span>Coinbase</span>
+                            </div>
+                            <span class="text-sm text-green-400">Operational</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <h2 class="text-xl font-semibold mb-6">Recent Events</h2>
+                    <div class="space-y-3">
+                        <div class="text-sm p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="font-medium">Credit attestation completed</div>
+                            <div class="text-gray-400">user_123 • $500 • 2 min ago</div>
+                        </div>
+                        <div class="text-sm p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="font-medium">Merchant request failed</div>
+                            <div class="text-gray-400">Square adapter • retry scheduled • 5 min ago</div>
+                        </div>
+                        <div class="text-sm p-3 bg-black bg-opacity-20 rounded-lg">
+                            <div class="font-medium">New user registered</div>
+                            <div class="text-gray-400">user_456 • 12 min ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <script>
+        // Section navigation
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('main > section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            // Update nav active state
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Add entrance animation
+            const section = document.getElementById(sectionId);
+            section.classList.remove('fade-in-up');
+            void section.offsetWidth; // Trigger reflow
+            section.classList.add('fade-in-up');
+        }
+
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-600' : 
+                           type === 'error' ? 'bg-red-600' : 
+                           type === 'warning' ? 'bg-yellow-600' : 'bg-blue-600';
+            
+            toast.className = `toast ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg`;
+            toast.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <span>${message}</span>
+                    ${type === 'loading' ? '<div class="spinner"></div>' : ''}
+                </div>
+            `;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Deposit processing
+        function processDeposit() {
+            const amount = document.getElementById('depositAmount').value;
+            const source = document.getElementById('depositSource').value;
+            
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid amount', 'error');
+                return;
+            }
+            
+            const btn = document.querySelector('#depositBtnText');
+            btn.innerHTML = '<div class="spinner mx-auto"></div>';
+            
+            // Simulate API call
+            setTimeout(() => {
+                btn.textContent = 'Create Deposit';
+                showToast(`Deposit of $${amount} via ${source} initiated successfully`, 'success');
+                document.getElementById('depositAmount').value = '';
+            }, 2000);
+        }
+
+        // Spend processing
+        function processSpend() {
+            const amount = document.getElementById('spendAmount').value;
+            const merchant = document.getElementById('spendMerchant').value;
+            
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid amount', 'error');
+                return;
+            }
+            
+            const btn = document.querySelector('#spendBtnText');
+            btn.innerHTML = '<div class="spinner mx-auto"></div>';
+            
+            // Simulate API call
+            setTimeout(() => {
+                btn.textContent = 'Execute Spend';
+                showToast(`Spend request of $${amount} to ${merchant} processed successfully`, 'success');
+                document.getElementById('spendAmount').value = '';
+            }, 2000);
+        }
+
+        // Merchant selection
+        function selectMerchant(merchant) {
+            document.getElementById('spendMerchant').value = merchant;
+            showToast(`${merchant} selected for spending`, 'info');
+        }
+
+        // Initialize with overview section
+        document.addEventListener('DOMContentLoaded', () => {
+            showToast('SOVR Console loaded successfully', 'success');
+        });
+
+        // Keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '1') showSection('overview');
+            if (e.key === '2') showSection('terminal');
+            if (e.key === '3') showSection('wallet');
+            if (e.key === '4') showSection('admin');
+        });
+    </script>
+</body>
+</html>
