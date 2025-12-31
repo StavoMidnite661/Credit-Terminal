@@ -8,7 +8,7 @@
  */
 
 import { createClient, Transfer, Account, Client } from 'tigerbeetle-node';
-import { ORACLE_ACCOUNTS, AccountType } from '../shared/oracle-ledger-bridge';
+import { NARRATIVE_ACCOUNTS as ORACLE_ACCOUNTS, AccountType } from '../shared/narrative-mirror-bridge';
 
 // Configuration
 const TB_CLUSTER_ID = 0n;
@@ -24,7 +24,7 @@ const TRANSFER_FLAGS = {
 };
 
 export class TigerBeetleService {
-  private client: Client;
+  private client!: Client;
   private isConnected: boolean = false;
 
   constructor() {
@@ -109,18 +109,40 @@ export class TigerBeetleService {
   }
 
   /**
-   * Create a double-entry transfer
+   * Create accounts directly (for setup/testing)
    */
+  async createAccounts(accounts: Account[]): Promise<boolean> {
+    if (!this.isConnected) return false;
+    try {
+      const errors = await this.client.createAccounts(accounts);
+      if (errors.length > 0) {
+        // Filter out "exists" (1) if redundant
+        const realErrors = errors.filter(e => e.result !== 1);
+        if (realErrors.length > 0) {
+          console.error('[TigerBeetle] Account creation failed:', realErrors);
+          return false;
+        }
+      }
+      return true;
+    } catch (e) {
+      console.error('[TigerBeetle] Account creation exception:', e);
+      return false;
+    }
+  }
+
   async createTransfer(
     debitAccount: bigint,
     creditAccount: bigint,
     amount: bigint,
-    ledger: number = 1
+    ledger: number = 1,
+    id?: bigint
   ): Promise<boolean> {
     if (!this.isConnected) return false;
 
+    const transferId = id || (BigInt(Date.now()) * 10000n + BigInt(Math.floor(Math.random() * 10000)));
+
     const transfer: Transfer = {
-      id: BigInt(Date.now()) * 10000n + BigInt(Math.floor(Math.random() * 10000)), // Crude UUID
+      id: transferId,
       debit_account_id: debitAccount,
       credit_account_id: creditAccount,
       amount: amount,
@@ -139,6 +161,9 @@ export class TigerBeetleService {
       const errors = await this.client.createTransfers([transfer]);
       if (errors.length > 0) {
         console.error('[TigerBeetle] Transfer failed:', errors);
+        // In a full implementation, we would check if error is "Exists" (idempotency)
+        // and return 'true' if it matches, or throw if mismatch.
+        // For now, failure to create is false.
         return false;
       }
       return true;

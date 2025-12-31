@@ -1,194 +1,162 @@
-// Event Logger - Records all credit events to Oracle Ledger
-// Provides audit trail and event history
+// Event Logger - Records all credit events to Narrative Mirror
+// Provides audit trail and event history (SOVEREIGN DOCTRINE ALIGNED)
 
 import { CreditEvent, CreditEventType } from './types';
 import { 
-  getOracleLedgerBridge,
-  OracleLedgerBridgeService 
-} from '../core/oracle-ledger-bridge-service';
+  getNarrativeMirror,
+  NarrativeMirrorService 
+} from '../core/narrative-mirror-service';
 import type { 
-  AnchorType,
-  CreateJournalEntryRequest,
-  JournalSource 
-} from '../../shared/oracle-ledger-bridge';
-import { ORACLE_ACCOUNTS } from '../../shared/oracle-ledger-bridge';
+  RecordNarrativeEntryRequest,
+  NarrativeSource,
+  NarrativeEntry 
+} from '../shared/narrative-mirror-bridge';
+import { NARRATIVE_ACCOUNTS } from '../shared/narrative-mirror-bridge';
 
 /**
- * Maps Credit Event types to Oracle Ledger journal sources
+ * Maps Credit Event types to Narrative Mirror sources (DOCTRINE ALIGNED)
+ * Removed 'PAYMENT' and 'PURCHASE' semantics.
  */
-const EVENT_TO_SOURCE: Record<CreditEventType, JournalSource> = {
-  [CreditEventType.CREDIT_DEPOSITED]: 'CHAIN',
-  [CreditEventType.VALUE_CREATED]: 'CHAIN',
+const EVENT_TO_SOURCE: Record<CreditEventType, NarrativeSource> = {
+  [CreditEventType.CREDIT_DEPOSITED]: 'CLEARING_OBSERVATION',
+  [CreditEventType.VALUE_CREATED]: 'CLEARING_OBSERVATION',
   [CreditEventType.CREDIT_PROOF_ATTESTED]: 'ATTESTATION',
   [CreditEventType.ATTESTATION_VERIFIED]: 'ATTESTATION',
-  [CreditEventType.CREDIT_UNLOCKED]: 'CHAIN',
-  [CreditEventType.MERCHANT_VALUE_REQUESTED]: 'PAYMENT',
-  [CreditEventType.MERCHANT_VALUE_ISSUED]: 'PAYMENT',
-  [CreditEventType.GIFT_CARD_CREATED]: 'PURCHASE',
-  [CreditEventType.SPEND_AUTHORIZED]: 'PAYMENT',
-  [CreditEventType.SPEND_EXECUTED]: 'PAYMENT',
-  [CreditEventType.SPEND_SETTLED]: 'PAYMENT',
-  [CreditEventType.SPEND_FAILED]: 'PAYMENT',
-  [CreditEventType.USER_REWARD_EARNED]: 'CHAIN',
-  [CreditEventType.CASHBACK_ISSUED]: 'CHAIN',
-  [CreditEventType.BALANCE_RECONCILED]: 'INTERCOMPANY',
-  [CreditEventType.AUDIT_LOG_CREATED]: 'CHAIN',
+  [CreditEventType.CREDIT_UNLOCKED]: 'CLEARING_OBSERVATION',
+  [CreditEventType.MERCHANT_VALUE_REQUESTED]: 'HONORING_ATTEMPT',
+  [CreditEventType.MERCHANT_VALUE_ISSUED]: 'HONORING_RESULT',
+  [CreditEventType.GIFT_CARD_CREATED]: 'HONORING_RESULT',
+  [CreditEventType.SPEND_AUTHORIZED]: 'HONORING_ATTEMPT',
+  [CreditEventType.SPEND_EXECUTED]: 'HONORING_RESULT',
+  [CreditEventType.SPEND_SETTLED]: 'HONORING_RESULT',
+  [CreditEventType.SPEND_FAILED]: 'HONORING_RESULT',
+  [CreditEventType.USER_REWARD_EARNED]: 'CLEARING_OBSERVATION',
+  [CreditEventType.CASHBACK_ISSUED]: 'HONORING_RESULT',
+  [CreditEventType.BALANCE_RECONCILED]: 'INTERSYSTEM',
+  [CreditEventType.AUDIT_LOG_CREATED]: 'CLEARING_OBSERVATION',
 };
 
 export class EventLogger {
   private events: CreditEvent[] = [];
-  private oracleBridge: OracleLedgerBridgeService;
+  private narrativeMirror: NarrativeMirrorService;
   
   constructor() {
-    this.oracleBridge = getOracleLedgerBridge();
+    this.narrativeMirror = getNarrativeMirror();
   }
   
-  /**
-   * Log a credit event and record to Oracle Ledger
-   */
   async log(event: CreditEvent): Promise<void> {
-    console.log(`[EventLogger] ${event.type}: ${event.userId} - ${event.amount}`);
-    
-    // Store event locally
+    console.log(`[EventLogger] ${event.type}: ${event.userId} - ${event.amount} units`);
     this.events.push(event);
     
-    // Create journal entry in Oracle Ledger
-    const journalRequest = this.createJournalRequest(event);
+    // Create narrative entry in Narrative Mirror
+    const narrativeRequest = this.createNarrativeRequest(event);
     
-    if (journalRequest) {
-      const result = await this.oracleBridge.createJournalEntry(journalRequest);
-      
-      if (result.success) {
-        console.log(`[EventLogger] Oracle Ledger journal created: ${result.journalEntryId}`);
-      } else {
-        console.error(`[EventLogger] Oracle Ledger journal failed: ${result.error}`);
+    if (narrativeRequest) {
+      const result = await this.narrativeMirror.recordNarrativeEntry(narrativeRequest);
+      if (!result.success) {
+        console.error(`[EventLogger] Narrative Mirror recording failed: ${result.error}`);
       }
     }
   }
   
   /**
-   * Create journal request from credit event
+   * Create narrative request from credit event.
+   * NOTE: Does NOT compute authoritative balances. Observations only.
    */
-  private createJournalRequest(event: CreditEvent): CreateJournalEntryRequest | null {
+  private createNarrativeRequest(event: CreditEvent): RecordNarrativeEntryRequest | null {
     const source = EVENT_TO_SOURCE[event.type];
-    const amount = Number(event.amount);
+    const amount = event.amount; // bigint (micro-units)
+    const displayAmount = (Number(amount) / 1_000_000).toFixed(2);
     
-    // Different event types create different journal entries
     switch (event.type) {
       case CreditEventType.CREDIT_DEPOSITED:
-        // User deposits value
-        // DR: Cash-Vault-USDC (asset increases)
-        // CR: Token-Realization (income)
         return {
-          description: `Credit deposited by ${event.userId}: ${amount / 100} USD`,
+          description: `Credit Deposit Observed for ${event.userId}: ${displayAmount} USD`,
           source,
-          status: 'Posted',
+          status: 'RECORDED',
           lines: [
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'DEBIT', amount },
-            { accountId: ORACLE_ACCOUNTS.TOKEN_REALIZATION, type: 'CREDIT', amount },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_STABLECOIN, type: 'DEBIT', amount },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_TOKEN_REALIZATION, type: 'CREDIT', amount },
           ],
           eventId: event.id,
+          userId: event.userId
         };
         
       case CreditEventType.SPEND_AUTHORIZED:
-        // Spend is authorized (hold placed)
-        // No journal entry yet - just logging
+        // Authorization is an intent observation
+        const memoAccountId = NARRATIVE_ACCOUNTS.ANCHOR_GROCERY_AUTHORIZATION_MEMO;
         return {
-          description: `Spend authorized for ${event.userId}: ${amount / 100} USD at ${event.metadata?.merchant}`,
+          description: `Authorization Intent Observed for ${event.userId}: ${displayAmount} USD at ${event.metadata?.merchant}`,
           source,
-          status: 'Pending',
+          status: 'OBSERVED',
           lines: [
-            // Memo entry (zero-value for audit trail)
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'DEBIT', amount: 0 },
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'CREDIT', amount: 0 },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_OPS_EXPENSE, type: 'DEBIT', amount: amount },
+            { accountId: memoAccountId, type: 'CREDIT', amount: amount },
           ],
           eventId: event.id,
+          userId: event.userId
         };
         
       case CreditEventType.SPEND_EXECUTED:
-        // Spend is executed
-        // DR: Ops-Expense (expense increases)
-        // CR: Cash-ODFI-LLC (cash decreases)
         return {
-          description: `Spend executed for ${event.userId}: ${amount / 100} USD at ${event.metadata?.merchant}`,
+          description: `Fulfillment Observation for ${event.userId}: ${displayAmount} USD at ${event.metadata?.merchant}`,
           source,
-          status: 'Posted',
+          status: 'RECORDED',
           lines: [
-            { accountId: ORACLE_ACCOUNTS.OPS_EXPENSE, type: 'DEBIT', amount },
-            { accountId: ORACLE_ACCOUNTS.CASH_ODFI_LLC, type: 'CREDIT', amount },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_OPS_EXPENSE, type: 'DEBIT', amount },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_ODFI, type: 'CREDIT', amount },
           ],
           eventId: event.id,
+          userId: event.userId
         };
         
       case CreditEventType.SPEND_SETTLED:
-        // Spend is settled (confirmed)
-        // Confirmation only - no balance change
         return {
-          description: `Spend settled for ${event.userId}: ${amount / 100} USD - Transaction ${event.metadata?.transactionId}`,
+          description: `Settlement Observation for ${event.userId}: ${displayAmount} USD - ${event.metadata?.transactionId}`,
           source,
-          status: 'Posted',
+          status: 'RECORDED',
           lines: [
-            // Memo entry (zero-value for audit trail)
-            { accountId: ORACLE_ACCOUNTS.CASH_ODFI_LLC, type: 'DEBIT', amount: 0 },
-            { accountId: ORACLE_ACCOUNTS.CASH_ODFI_LLC, type: 'CREDIT', amount: 0 },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_ODFI, type: 'DEBIT', amount: 0n },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_ODFI, type: 'CREDIT', amount: 0n },
           ],
           eventId: event.id,
+          userId: event.userId
         };
         
       case CreditEventType.SPEND_FAILED:
-        // Spend failed - reversal or logging only
         return {
-          description: `Spend failed for ${event.userId}: ${amount / 100} USD - ${event.metadata?.error}`,
+          description: `Failure Observation for ${event.userId}: ${displayAmount} USD - ${event.metadata?.error}`,
           source,
-          status: 'Posted',
+          status: 'FAILED',
           lines: [
-            // Memo entry (zero-value for audit trail)
-            { accountId: ORACLE_ACCOUNTS.OPS_EXPENSE, type: 'DEBIT', amount: 0 },
-            { accountId: ORACLE_ACCOUNTS.OPS_EXPENSE, type: 'CREDIT', amount: 0 },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_OPS_EXPENSE, type: 'DEBIT', amount: 0n },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_OPS_EXPENSE, type: 'CREDIT', amount: 0n },
           ],
           eventId: event.id,
+          userId: event.userId
         };
         
       case CreditEventType.GIFT_CARD_CREATED:
-        // Gift card purchased
-        // DR: Purchase-Expense (expense)
-        // CR: AP (we owe the gift card provider)
         return {
-          description: `Gift card created for ${event.userId}: ${amount / 100} USD`,
+          description: `Reward Issuance Observed for ${event.userId}: ${displayAmount} USD`,
           source,
-          status: 'Posted',
+          status: 'RECORDED',
           lines: [
-            { accountId: ORACLE_ACCOUNTS.PURCHASE_EXPENSE, type: 'DEBIT', amount },
-            { accountId: ORACLE_ACCOUNTS.AP, type: 'CREDIT', amount },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_PURCHASE_EXPENSE, type: 'DEBIT', amount },
+            { accountId: NARRATIVE_ACCOUNTS.OBSERVED_AP, type: 'CREDIT', amount },
           ],
           eventId: event.id,
-        };
-        
-      case CreditEventType.CASHBACK_ISSUED:
-        // Cashback issued to user
-        // DR: Ops-Expense (expense)
-        // CR: Cash-Vault-USDC (user balance increases)
-        return {
-          description: `Cashback issued to ${event.userId}: ${amount / 100} USD`,
-          source,
-          status: 'Posted',
-          lines: [
-            { accountId: ORACLE_ACCOUNTS.OPS_EXPENSE, type: 'DEBIT', amount },
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'CREDIT', amount },
-          ],
-          eventId: event.id,
+          userId: event.userId
         };
         
       case CreditEventType.ATTESTATION_VERIFIED:
-        // Attestation verified on-chain
-        // No balance change - audit only
         return {
-          description: `Attestation verified for event ${event.id}`,
+          description: `Attestation Verification Observed for event ${event.id}`,
           source,
-          status: 'Posted',
+          status: 'RECORDED',
           lines: [
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'DEBIT', amount: 0 },
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'CREDIT', amount: 0 },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_STABLECOIN, type: 'DEBIT', amount: 0n },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_STABLECOIN, type: 'CREDIT', amount: 0n },
           ],
           eventId: event.id,
           txHash: event.transactionHash,
@@ -196,20 +164,20 @@ export class EventLogger {
         };
         
       default:
-        // Other events - log only with memo entry
         return {
-          description: `${event.type}: ${event.userId} - ${amount / 100} USD`,
+          description: `${event.type} Observed: ${event.userId} - ${displayAmount} USD`,
           source,
-          status: 'Posted',
+          status: 'OBSERVED',
           lines: [
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'DEBIT', amount: 0 },
-            { accountId: ORACLE_ACCOUNTS.CASH_VAULT_USDC, type: 'CREDIT', amount: 0 },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_STABLECOIN, type: 'DEBIT', amount: 0n },
+            { accountId: NARRATIVE_ACCOUNTS.HONORING_ADAPTER_STABLECOIN, type: 'CREDIT', amount: 0n },
           ],
           eventId: event.id,
+          userId: event.userId
         };
     }
   }
-  
+
   /**
    * Get events for user
    */
@@ -225,16 +193,16 @@ export class EventLogger {
   }
   
   /**
-   * Get Oracle Ledger journal entries for an event
+   * Get Narrative Mirror entries for an event
    */
-  async getJournalEntriesForEvent(eventId: string) {
-    return this.oracleBridge.getJournalEntriesByEventId(eventId);
+  async getNarrativeEntriesForEvent(eventId: string) {
+    return this.narrativeMirror.getNarrativeEntriesByEventId(eventId);
   }
   
   /**
-   * Get Oracle Ledger balance for an account
+   * Get Narrative Mirror observed balance for an account
    */
-  async getOracleBalance(accountId: number): Promise<number> {
-    return this.oracleBridge.getAccountBalance(accountId);
+  async getObservedBalance(accountId: number): Promise<bigint> {
+    return this.narrativeMirror.getObservedAccountBalance(accountId);
   }
 }

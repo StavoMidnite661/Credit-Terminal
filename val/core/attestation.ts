@@ -52,29 +52,41 @@ export class AttestationEngine {
   /**
    * Verify existing attestation
    */
-  async verify(attestation: Attestation): Promise<boolean> {
+  async verify(attestation: Attestation, event: CreditEvent): Promise<boolean> {
     try {
-      // 1. Reconstruct message
-      const message = this.reconstructMessage(attestation);
+      // 1. Reconstruct message (Must match exactly what was signed)
+      // We use the provided event data + proof from attestation
+      const message = this.createAttestationMessage(event, attestation.proof);
       
       // 2. Verify signature
       const recoveredAddress = ethers.utils.verifyMessage(message, attestation.signature);
       
       // 3. Check attestor
       if (recoveredAddress.toLowerCase() !== attestation.attestor.toLowerCase()) {
+        console.warn(`Attestation signature mismatch. Recovered: ${recoveredAddress}, Expected: ${attestation.attestor}`);
         return false;
       }
       
       // 4. Verify proof
       const proofValid = this.verifyProof(attestation.proof);
       if (!proofValid) {
+        console.warn('Attestation proof invalid');
         return false;
       }
       
-      // 5. Check timestamp (not too old)
-      const ageMs = Date.now() - attestation.timestamp.getTime();
+      // 5. Check timestamps (Freshness)
+      const now = Date.now();
+      const attestationAge = now - new Date(attestation.timestamp).getTime();
+      const eventAge = now - new Date(event.timestamp).getTime();
       const maxAgeMs = 24 * 60 * 60 * 1000; // 24 hours
-      if (ageMs > maxAgeMs) {
+
+      if (attestationAge > maxAgeMs) {
+        console.warn('Attestation expired');
+        return false;
+      }
+
+      if (eventAge > maxAgeMs) {
+        console.warn('Underlying Event expired');
         return false;
       }
       

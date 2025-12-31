@@ -7,6 +7,7 @@ import { SpendEngine } from './core/spend_engine';
 import { EventLogger } from './events/logger';
 import { SquareAdapter } from './adapters/square_adapter';
 import { TangoAdapter } from './adapters/tango_adapter';
+import { InstacartAdapter } from './adapters/instacart_adapter';
 
 export class VALSystem {
   private attestationEngine: AttestationEngine;
@@ -43,6 +44,10 @@ export class VALSystem {
       );
       this.spendEngine.registerAdapter(tangoAdapter);
     }
+
+    // Register Instacart Adapter (Zero-Float)
+    const instacartAdapter = new InstacartAdapter();
+    this.spendEngine.registerAdapter(instacartAdapter);
   }
   
   /**

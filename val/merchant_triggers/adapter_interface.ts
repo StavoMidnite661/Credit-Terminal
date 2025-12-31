@@ -1,7 +1,7 @@
 // Merchant Value Adapter Interface
 // Universal interface for all merchant integrations
 
-import { Attestation, SpendParams } from '../events/types';
+import { Attestation, SpendParams, MerchantType } from '../events/types';
 
 export interface IMerchantValueAdapter {
   name: string;
@@ -76,7 +76,6 @@ export interface WebhookResponse {
   processedAt: Date;
 }
 
-export type MerchantType = 'square' | 'stripe' | 'coinbase' | 'visa' | 'tango' | 'instacart';
 
 export class MerchantAdapterError extends Error {
   constructor(

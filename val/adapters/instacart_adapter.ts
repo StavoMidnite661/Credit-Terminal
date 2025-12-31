@@ -1,6 +1,13 @@
 // Instacart Zero-Float Adapter
 // Integrates with Tango Card to fulfill grocery credits without pre-funding.
-// Wire: Credit Terminal -> Oracle Ledger -> Tango API
+// Wire: Credit Terminal -> Narrative Mirror -> Tango API
+//
+// -----------------------------------------------------------------------------
+// SOVR CANON NOTICE
+// -----------------------------------------------------------------------------
+// Honoring Agent: External, Non-Authoritative
+// This component interacts with hostile external systems.
+// -----------------------------------------------------------------------------
 
 import { 
   IMerchantValueAdapter, 
@@ -11,10 +18,10 @@ import {
   MerchantAdapterError 
 } from '../merchant_triggers/adapter_interface';
 import { 
-  getOracleLedgerBridge, 
-  OracleLedgerBridgeService 
-} from '../core/oracle-ledger-bridge-service';
-import { AnchorType } from '../../shared/oracle-ledger-bridge';
+  getNarrativeMirror, 
+  NarrativeMirrorService 
+} from '../core/narrative-mirror-service';
+import { AnchorType } from '../shared/narrative-mirror-bridge';
 
 // Mock Tango Client for V1
 interface TangoOrderResult {
@@ -33,22 +40,22 @@ export class InstacartAdapter implements IMerchantValueAdapter {
   enabled = true;
   
   private anchorContractAddress: string;
-  private oracleBridge: OracleLedgerBridgeService;
+  private narrativeMirror: NarrativeMirrorService;
   
   // Specific UTID for Instacart (Mock for now)
   private readonly INSTACART_UTID = 'U123456'; 
   
   constructor(anchorContractAddress: string = '0xANCHOR_CONTRACT_ADDRESS_PLACEHOLDER') {
     this.anchorContractAddress = anchorContractAddress;
-    this.oracleBridge = getOracleLedgerBridge();
+    this.narrativeMirror = getNarrativeMirror();
   }
   
   /**
    * Issue Instacart value via Anchor Contract + Tango Card
    * Flow:
-   * 1. Log Anchor Authorization in Oracle Ledger (Obligation Creation)
+   * 1. Log Anchor Authorization in Narrative Mirror (Obligation Creation)
    * 2. Call Tango Card API to issue gift card (Zero-Float)
-   * 3. Log Anchor Fulfillment in Oracle Ledger (Obligation Settlement)
+   * 3. Log Anchor Fulfillment in Narrative Mirror (Obligation Settlement)
    */
   async issueValue(request: ValueRequest): Promise<ValueResponse> {
     const eventId = `AUTH-${Date.now()}-${Math.random().toString(36).substr(2,6)}`;
@@ -56,26 +63,19 @@ export class InstacartAdapter implements IMerchantValueAdapter {
     try {
       console.log(`[InstacartAdapter] Processing request for user ${request.userId} ($${request.amount})`);
       
-      // Amount in cents/units
-      const units = BigInt(Math.round(request.amount * 100)); // 1 unit = 1 cent ? 
-      // Spec says "1 unit = $1 grocery credit" usually means 100 cents if ledger is cents.
-      // But let's stick to consistent units. If Oracle Ledger is cents, let's use cents for "units" to keep math simple.
-      // Or 1 unit = 1 dollar? 
-      // In `constants.ts`, accounts are in cents.
-      // In `ANCHOR_CONTRACT_SPEC.md`, "1 unit = $1 grocery credit".
-      // If we authorize 100 units ($100), we record $10000 cents in Oracle Ledger.
-      // Let's interpret "units" in Anchor Contract as "cents" to be 1:1 with Oracle Ledger.
+      // Amount in micro-units (1e6)
+      const units = BigInt(Math.round(request.amount * 1_000_000));
       
-      // 1. RECORD AUTHORIZATION (Oracle Ledger)
-      // DR User/Ops -> CR Anchor Obligation
-      await this.oracleBridge.recordAnchorAuthorization({
+      // 1. RECORD AUTHORIZATION (Narrative Mirror)
+      // Records intent to honor, does not touch Clearing Authority (TigerBeetle)
+      await this.narrativeMirror.recordAnchorAuthorization({
         eventId: eventId,
         user: request.userId,
         anchorType: 'GROCERY' as AnchorType,
         units: units,
         expiry: Date.now() + 86400000 // 24h
       });
-      console.log(`[InstacartAdapter] Anchor Authorization recorded: ${eventId}`);
+      console.log(`[InstacartAdapter] Intent Observation recorded: ${eventId}`);
       
       // 2. ADAPTER EXECUTION (Tango Card API)
       const tangoResult = await this.callTangoApi(request.amount, request.userId, eventId);
@@ -84,18 +84,17 @@ export class InstacartAdapter implements IMerchantValueAdapter {
         throw new Error(tangoResult.error || 'Tango API failed');
       }
       
-      // 3. RECORD FULFILLMENT (Oracle Ledger)
-      // DR Anchor Obligation -> CR Fulfillment Expense (or AP)
-      // We generate a proof hash from the order ID
-      const proofHash = this.generateProofHash(tangoResult.orderId);
+      // 3. RECORD FULFILLMENT (Narrative Mirror)
+      // Records observation of mechanical fulfillment.
+      const proofHash = this.generateProofHash(tangoResult.orderId || 'UNKNOWN');
       
-      await this.oracleBridge.recordAnchorFulfillment(
+      await this.narrativeMirror.recordAnchorFulfillment(
         eventId,
         'GROCERY' as AnchorType,
         units,
         proofHash
       );
-      console.log(`[InstacartAdapter] Anchor Fulfillment recorded: ${tangoResult.orderId}`);
+      console.log(`[InstacartAdapter] Fulfillment Observation recorded: ${tangoResult.orderId}`);
       
       return {
         success: true,
@@ -114,7 +113,7 @@ export class InstacartAdapter implements IMerchantValueAdapter {
       console.error('[InstacartAdapter] Error:', error);
       
       // If authorization succeeded but fulfillment failed, we should arguably "Expire" the authorization
-      // or mark it as failed in Oracle Ledger to reverse liability.
+      // or mark it as failed in Narrative Mirror to reverse liability.
       // For now, we simulate failure.
       
       return {
